@@ -2,11 +2,13 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import declarative_base
 from app.core.config import settings
 
-# Create async engine
+# Create async engine with resilient connection pooling
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
-    future=True
+    future=True,
+    pool_pre_ping=True,
+    pool_recycle=300
 )
 
 # Create async session factory
