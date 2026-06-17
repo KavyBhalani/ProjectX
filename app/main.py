@@ -14,11 +14,14 @@ async def lifespan(app: FastAPI):
     from app.models.chat import ChatLog
     from app.models.memory import EpisodicMemory
     
-    async with engine.begin() as conn:
-        # Enable pgvector extension
-        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        # Create all tables (useful if migrations aren't strictly managed yet)
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            # Enable pgvector extension
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            # Create all tables (useful if migrations aren't strictly managed yet)
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        print(f"Database initialization skipped (likely already handled by another worker): {e}")
     yield
 
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION, lifespan=lifespan)
