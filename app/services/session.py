@@ -2,7 +2,9 @@ import redis.asyncio as redis
 import json
 from app.core.config import settings
 
-redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+# Upstash requires ssl_cert_reqs="none" for secure connections to prevent dropping
+ssl_args = {"ssl_cert_reqs": "none"} if settings.REDIS_URL.startswith("rediss://") else {}
+redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True, **ssl_args)
 
 class SessionManager:
     @staticmethod
