@@ -4,6 +4,7 @@ from app.models.memory import EpisodicMemory
 from app.models.companion import CompanionProfile
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from app.core.config import settings
+import uuid
 
 class MemoryService:
     def __init__(self):
@@ -13,12 +14,14 @@ class MemoryService:
         """
         Retrieves episodic memories using pgvector cosine similarity search.
         """
-        query_embedding = self.embeddings.embed_query(query)
+        query_embedding = await self.embeddings.aembed_query(query)
+        u_id = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
+        c_id = uuid.UUID(companion_id) if isinstance(companion_id, str) else companion_id
         
         # Perform vector similarity search using pgvector's <=> operator (cosine distance)
         stmt = select(EpisodicMemory).where(
-            EpisodicMemory.user_id == user_id,
-            EpisodicMemory.companion_id == companion_id
+            EpisodicMemory.user_id == u_id,
+            EpisodicMemory.companion_id == c_id
         ).order_by(
             EpisodicMemory.embedding.cosine_distance(query_embedding)
         ).limit(limit)
@@ -36,11 +39,13 @@ class MemoryService:
         """
         Saves a new episodic memory with its vector embedding.
         """
-        embedding = self.embeddings.embed_query(content)
+        embedding = await self.embeddings.aembed_query(content)
+        u_id = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
+        c_id = uuid.UUID(companion_id) if isinstance(companion_id, str) else companion_id
         
         new_memory = EpisodicMemory(
-            user_id=user_id,
-            companion_id=companion_id,
+            user_id=u_id,
+            companion_id=c_id,
             content=content,
             embedding=embedding
         )
@@ -51,7 +56,8 @@ class MemoryService:
         """
         Retrieves dynamic attributes (facts) about the user/companion relationship.
         """
-        stmt = select(CompanionProfile).where(CompanionProfile.companion_id == companion_id)
+        c_id = uuid.UUID(companion_id) if isinstance(companion_id, str) else companion_id
+        stmt = select(CompanionProfile).where(CompanionProfile.companion_id == c_id)
         result = await db.execute(stmt)
         companion = result.scalar_one_or_none()
         
@@ -68,7 +74,8 @@ class MemoryService:
         """
         Updates the companion's dynamic attributes.
         """
-        stmt = select(CompanionProfile).where(CompanionProfile.companion_id == companion_id)
+        c_id = uuid.UUID(companion_id) if isinstance(companion_id, str) else companion_id
+        stmt = select(CompanionProfile).where(CompanionProfile.companion_id == c_id)
         result = await db.execute(stmt)
         companion = result.scalar_one_or_none()
         
