@@ -3,6 +3,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from app.agents.state import CompanionState
+from langchain_core.messages import HumanMessage, AIMessage
 from app.services.memory import MemoryService
 from app.db.session import async_session_maker
 from app.core.config import settings
@@ -53,15 +54,20 @@ You must be supportive, engaging, and maintain continuity in conversations.
         ("human", "{input}")
     ])
     
-    # We will format history into a string for this simple example, or convert to Langchain messages
-    history_text = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in state["history"]])
+    # Convert history dicts to LangChain BaseMessage objects
+    history_msgs = []
+    for msg in state["history"]:
+        if msg["role"] == "user":
+            history_msgs.append(HumanMessage(content=msg["content"]))
+        elif msg["role"] == "assistant":
+            history_msgs.append(AIMessage(content=msg["content"]))
     
     chain = prompt | llm
     
     result = await chain.ainvoke({
         "profile_context": state["profile_context"],
         "episodic_context": state["episodic_context"],
-        "history": history_text,
+        "history": history_msgs,
         "input": state["input"]
     })
     
