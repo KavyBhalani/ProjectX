@@ -8,7 +8,7 @@ from app.db.session import async_session_maker
 from app.core.config import settings
 
 # Initialize services
-llm = ChatGoogleGenerativeAI(google_api_key=settings.GEMINI_API_KEY, model="gemini-1.5-flash", temperature=0.7)
+llm = ChatGoogleGenerativeAI(google_api_key=settings.GEMINI_API_KEY, model="gemini-pro", temperature=0.7)
 memory_service = MemoryService()
 
 async def retrieve_context_node(state: CompanionState) -> CompanionState:
