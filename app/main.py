@@ -20,6 +20,10 @@ async def lifespan(app: FastAPI):
             await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
             # Create all tables (useful if migrations aren't strictly managed yet)
             await conn.run_sync(Base.metadata.create_all)
+            
+        # Run the dimension resize in a separate transaction so it doesn't break startup if it fails
+        async with engine.begin() as conn:
+            await conn.execute(text("ALTER TABLE episodic_memory ALTER COLUMN embedding TYPE vector(3072);"))
     except Exception as e:
         print(f"Database initialization skipped (likely already handled by another worker): {e}")
     yield

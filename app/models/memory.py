@@ -12,5 +12,5 @@ class EpisodicMemory(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("user_profiles.user_id", ondelete="CASCADE"), nullable=False)
     companion_id = Column(UUID(as_uuid=True), ForeignKey("companion_profiles.companion_id", ondelete="CASCADE"), nullable=False)
     content = Column(Text, nullable=False)
-    embedding = Column(Vector(768)) # Standard size for Google text-embedding-004
+    embedding = Column(Vector(3072)) # Standard size for Google gemini-embedding-2
     created_at = Column(DateTime, default=datetime.utcnow)
