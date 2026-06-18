@@ -10,6 +10,7 @@ from app.core.config import settings
 
 # Initialize services
 llm = ChatGoogleGenerativeAI(google_api_key=settings.GEMINI_API_KEY, model="gemini-3.1-flash-lite", temperature=0.7)
+llm_structured = ChatGoogleGenerativeAI(google_api_key=settings.GEMINI_API_KEY, model="gemini-3.5-flash", temperature=0.0)
 memory_service = MemoryService()
 
 async def retrieve_context_node(state: CompanionState) -> CompanionState:
@@ -91,7 +92,7 @@ async def extract_memory_node(state: CompanionState) -> CompanionState:
         "Extract only if clearly stated."
     )
     
-    structured_llm = llm.with_structured_output(MemoryExtraction)
+    structured_llm = llm_structured.with_structured_output(MemoryExtraction)
     chain = prompt | structured_llm
     
     try:
