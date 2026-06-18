@@ -1,6 +1,7 @@
 import json
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 from app.agents.state import CompanionState
 from langchain_core.messages import HumanMessage, AIMessage
@@ -10,7 +11,6 @@ from app.core.config import settings
 
 # Initialize services
 llm = ChatGoogleGenerativeAI(google_api_key=settings.GEMINI_API_KEY, model="gemini-3.1-flash-lite", temperature=0.7)
-llm_structured = ChatGoogleGenerativeAI(google_api_key=settings.GEMINI_API_KEY, model="gemini-3.5-flash", temperature=0.0)
 memory_service = MemoryService()
 
 async def retrieve_context_node(state: CompanionState) -> CompanionState:
@@ -85,21 +85,26 @@ async def extract_memory_node(state: CompanionState) -> CompanionState:
     if not state.get("trigger_extraction"):
         return state
 
+    parser = JsonOutputParser(pydantic_object=MemoryExtraction)
+
     prompt = ChatPromptTemplate.from_template(
         "Analyze the following recent conversation segment and extract any permanent user facts (preferences, relationships) or major life events.\n\n"
         "User Input: {input}\n"
         "Assistant Response: {response}\n\n"
-        "Extract only if clearly stated."
+        "Extract only if clearly stated.\n\n"
+        "{format_instructions}"
     )
     
-    structured_llm = llm_structured.with_structured_output(MemoryExtraction)
-    chain = prompt | structured_llm
+    chain = prompt | llm | parser
     
     try:
-        extraction: MemoryExtraction = await chain.ainvoke({
+        extraction_dict = await chain.ainvoke({
             "input": state["input"],
-            "response": state["response"]
+            "response": state["response"],
+            "format_instructions": parser.get_format_instructions()
         })
+        
+        extraction = MemoryExtraction(**extraction_dict)
         
         async with async_session_maker() as db:
             if extraction.facts:
