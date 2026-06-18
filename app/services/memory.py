@@ -8,7 +8,7 @@ import uuid
 
 class MemoryService:
     def __init__(self):
-        self.embeddings = GoogleGenerativeAIEmbeddings(google_api_key=settings.GEMINI_API_KEY, model="models/text-embedding-004")
+        self.embeddings = GoogleGenerativeAIEmbeddings(google_api_key=settings.GEMINI_API_KEY, model="models/gemini-embedding-2")
 
     async def get_long_term_memories(self, db: AsyncSession, user_id: str, companion_id: str, query: str, limit: int = 3) -> str:
         """
