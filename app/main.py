@@ -22,9 +22,18 @@ async def lifespan(app: FastAPI):
             await conn.run_sync(Base.metadata.create_all)
             
         # Run the dimension resize in a separate transaction so it doesn't break startup if it fails
-        async with engine.begin() as conn:
-            await conn.execute(text("ALTER TABLE episodic_memory ALTER COLUMN embedding TYPE vector(3072);"))
-            await conn.execute(text("ALTER TABLE companion_profiles ADD COLUMN IF NOT EXISTS gender VARCHAR(20) DEFAULT 'unspecified';"))
+        try:
+            async with engine.begin() as conn:
+                await conn.execute(text("ALTER TABLE episodic_memory ALTER COLUMN embedding TYPE vector(3072);"))
+        except Exception as e:
+            print(f"Vector migration skipped: {e}")
+            
+        try:
+            async with engine.begin() as conn:
+                await conn.execute(text("ALTER TABLE companion_profiles ADD COLUMN IF NOT EXISTS gender VARCHAR(20) DEFAULT 'unspecified';"))
+        except Exception as e:
+            print(f"Gender migration skipped: {e}")
+            
     except Exception as e:
         print(f"Database initialization skipped (likely already handled by another worker): {e}")
     yield
