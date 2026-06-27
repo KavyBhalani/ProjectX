@@ -12,14 +12,22 @@ async def test_chat_api():
     print("=== 1. Creating a User ===")
     user_response = requests.post(
         f"{BASE_URL}/api/users",
-        json={"username": "TestUser", "email": "test17@test.com"}
+        json={"username": "TestUser", "email": "test20@test.com"}
     )
     
     if user_response.status_code == 400:
         print("User already exists! Please change the email in the code if you want a new one.")
         return
+    elif user_response.status_code != 200:
+        print(f"Error creating user! Status: {user_response.status_code}")
+        print(user_response.text)
+        return
         
-    user_data = user_response.json()
+    try:
+        user_data = user_response.json()
+    except Exception as e:
+        print(f"Failed to parse JSON response: {user_response.text}")
+        return
     user_id = user_data["user_id"]
     print(f"✅ User Created! ID: {user_id}")
 
@@ -50,7 +58,8 @@ async def test_chat_api():
                         data = json.loads(response)
                         if data.get("type") == "token":
                             print(data.get("text", ""), end="", flush=True)
-                            is_streaming = True
+                        elif data.get("type") == "end":
+                            is_streaming = False
                         elif data.get("type") == "error":
                             print(f"\n[SERVER ERROR]: {data.get('text')}")
                 except websockets.exceptions.ConnectionClosed:
@@ -66,13 +75,12 @@ async def test_chat_api():
                     break
                     
                 print("Emma: ", end="", flush=True)
+                is_streaming = True
                 await websocket.send(json.dumps({"type": "message", "text": user_msg}))
                 
-                # Give Emma a second to start replying, then wait until streaming finishes before prompting again
-                await asyncio.sleep(1)
+                # Wait until the 'end' token is received
                 while is_streaming:
-                    is_streaming = False # Reset flag and wait to see if more tokens arrive
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(0.1)
                 
             listener_task.cancel()
 

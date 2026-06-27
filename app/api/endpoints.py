@@ -141,6 +141,8 @@ async def websocket_chat(websocket: WebSocket, user_id: str, companion_id: str, 
             for i, word in enumerate(words):
                 chunk = word + (" " if i < len(words) - 1 else "")
                 await websocket.send_json({"type": "token", "text": chunk})
+            
+            await websocket.send_json({"type": "end"})
                 
             # Run memory extraction completely in the background!
             asyncio.create_task(run_memory_extraction(result))
