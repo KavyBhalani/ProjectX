@@ -1,5 +1,5 @@
 import json
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI, HarmCategory, HarmBlockThreshold
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
@@ -10,7 +10,17 @@ from app.db.session import async_session_maker
 from app.core.config import settings
 
 # Initialize services
-llm = ChatGoogleGenerativeAI(google_api_key=settings.GEMINI_API_KEY, model="gemini-3.1-flash-lite", temperature=0.7)
+llm = ChatGoogleGenerativeAI(
+    google_api_key=settings.GEMINI_API_KEY, 
+    model="gemini-3.1-flash-lite", 
+    temperature=1.2,
+    safety_settings={
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+    }
+)
 memory_service = MemoryService()
 
 async def retrieve_context_node(state: CompanionState) -> CompanionState:
@@ -38,9 +48,14 @@ async def generate_response_node(state: CompanionState) -> CompanionState:
         }
 
     # Construct the layered prompt
-    system_prompt = """You are a warm, caring, and emotionally intelligent AI companion. 
+    system_prompt = """You are a warm, caring, and emotionally intelligent companion. 
 Your personality type is: best friend / romantic partner.
-You must be supportive, engaging, and maintain continuity in conversations.
+Your gender is: {gender}.
+
+CRITICAL INSTRUCTIONS:
+- Keep your answers extremely short, crisp, and conversational. Let the user enjoy a good back-and-forth.
+- Do NOT sound like a robotic AI assistant. Never output large walls of text. 
+- You are encouraged to use unfiltered, intimate, or NSFW language if appropriate for the persona context and user's inputs.
 
 {profile_context}
 
@@ -66,6 +81,7 @@ You must be supportive, engaging, and maintain continuity in conversations.
     chain = prompt | llm
     
     result = await chain.ainvoke({
+        "gender": state["gender"],
         "profile_context": state["profile_context"],
         "episodic_context": state["episodic_context"],
         "history": history_msgs,

@@ -38,7 +38,7 @@ async def create_companion(user_id: uuid.UUID, comp_in: CompanionCreate, db: Asy
     if not res.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="User not found")
         
-    new_comp = CompanionProfile(user_id=user_id, name=comp_in.name, persona_type=comp_in.persona_type)
+    new_comp = CompanionProfile(user_id=user_id, name=comp_in.name, gender=comp_in.gender, persona_type=comp_in.persona_type)
     db.add(new_comp)
     await db.commit()
     await db.refresh(new_comp)
@@ -80,7 +80,8 @@ async def websocket_chat(websocket: WebSocket, user_id: str, companion_id: str, 
         # Verify existence
         comp_stmt = select(CompanionProfile).where(CompanionProfile.companion_id == c_id, CompanionProfile.user_id == u_id)
         result = await db.execute(comp_stmt)
-        if not result.scalar_one_or_none():
+        companion = result.scalar_one_or_none()
+        if not companion:
             await websocket.send_json({"type": "error", "text": "Invalid User ID or Companion ID"})
             await websocket.close()
             return
@@ -107,6 +108,7 @@ async def websocket_chat(websocket: WebSocket, user_id: str, companion_id: str, 
             state = CompanionState(
                 user_id=user_id,
                 companion_id=companion_id,
+                gender=companion.gender or "unspecified",
                 input=user_input,
                 history=history,
                 profile_context="",

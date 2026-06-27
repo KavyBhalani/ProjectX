@@ -3,6 +3,7 @@ from typing import TypedDict, List, Dict, Any, Optional
 class CompanionState(TypedDict):
     user_id: str
     companion_id: str
+    gender: str
     input: str
     history: List[Dict[str, str]]
     

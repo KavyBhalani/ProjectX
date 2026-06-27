@@ -17,12 +17,14 @@ class UserResponse(BaseModel):
 
 class CompanionCreate(BaseModel):
     name: str
+    gender: Optional[str] = "unspecified"
     persona_type: str = "friend"
 
 class CompanionResponse(BaseModel):
     companion_id: uuid.UUID
     user_id: uuid.UUID
     name: str
+    gender: str
     persona_type: str
     dynamic_attributes: dict
     created_at: datetime
